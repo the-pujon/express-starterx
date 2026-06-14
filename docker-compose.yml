@@ -1,28 +1,28 @@
 services:
-  app:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    ports:
-      - "4000:4000"
-    env_file:
-      - .env
-    volumes:
-      - .:/app
-      - /app/node_modules
-    command: npm run dev
-    depends_on:
-      mongo:
-        condition: service_healthy
-      redis:
-        condition: service_started
-    environment:
-      # MongoDB connection string (secure, internal DNS)
-      MONGODB_URI: mongodb://admin:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB}?authSource=admin
-      # Redis connection string (password protected)
-      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
-    networks:
-      - app-net
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "4000:4000"
+  #   env_file:
+  #     - .env
+  #   volumes:
+  #     - .:/app
+  #     - /app/node_modules
+  #   command: npm run dev
+  #   depends_on:
+  #     mongo:
+  #       condition: service_healthy
+  #     redis:
+  #       condition: service_started
+  #   environment:
+  #     # MongoDB connection string (secure, internal DNS)
+  #     MONGODB_URI: mongodb://admin:${MONGO_ROOT_PASSWORD}@mongo:27017/${MONGO_DB}?authSource=admin
+  #     # Redis connection string (password protected)
+  #     REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+  #   networks:
+  #     - app-net
 
   mongo:
     image: mongo:7.0
@@ -54,7 +54,7 @@ services:
       - "6379:6379" # exposed for Redis Insight
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD}
-    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD}"]
+    command: [ "redis-server", "--requirepass", "${REDIS_PASSWORD}" ]
     volumes:
       - redis_data:/data
     networks:

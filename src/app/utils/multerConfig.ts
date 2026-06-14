@@ -1,6 +1,7 @@
 //updated One
 
 import multer from 'multer';
+// @ts-ignore
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import { v2 as cloudinary } from 'cloudinary';
 import path from 'path';

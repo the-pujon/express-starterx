@@ -1,21 +1,41 @@
-import { UserRole } from './auth.interface';
+// Re-export from new location for backward compatibility
+export { AUTH_CONFIG, UserRole } from "./domain/config/auth.config";
 
+/**
+ * @deprecated Use import from "./domain/config/auth.config" instead
+ */
+import { UserRole } from "./domain/models/user.model";
+
+/**
+ * Authentication Configuration Constants
+ * Matches NestJS template pattern
+ * @deprecated Use import from "./domain/config/auth.config" instead
+ */
 export const AUTH_CONFIG = {
-  // Token settings
+  // Password Configuration
+  PASSWORD_MIN_LENGTH: 8,
+  PASSWORD_REQUIREMENTS: {
+    UPPERCASE: true,
+    LOWERCASE: true,
+    NUMBERS: true,
+    SPECIAL_CHARS: true,
+  },
+
+  // Token Configuration
+  TOKEN_EXPIRY: {
+    ACCESS: "15m",
+    REFRESH: "7d",
+    VERIFICATION: "24h",
+    PASSWORD_RESET: "1h",
+  },
+
+  // Legacy token settings (for backward compatibility)
   VERIFICATION_TOKEN_LENGTH: 6,
   VERIFICATION_TOKEN_EXPIRY_MINUTES: 10,
   RESET_TOKEN_EXPIRY_MINUTES: 10,
   PASSWORD_RESET_TOKEN_LENGTH: 20,
 
-  // Cache settings
-  CACHE_PREFIXES: {
-    VERIFICATION: 'verification:',
-    RESET_PASSWORD: 'reset:',
-    USER_TOKENS: 'user:tokens:',
-    RATE_LIMIT: 'ratelimit:',
-  },
-
-  // Rate limiting
+  // Rate Limiting
   RATE_LIMIT: {
     LOGIN: {
       WINDOW_MS: 15 * 60 * 1000, // 15 minutes
@@ -29,22 +49,59 @@ export const AUTH_CONFIG = {
       WINDOW_MS: 60 * 60 * 1000, // 1 hour
       MAX_ATTEMPTS: 3,
     },
+    LOGIN_MAX_ATTEMPTS: 5,
+    LOGIN_WINDOW_MS: 15 * 60 * 1000,
+    PASSWORD_RESET_MAX_ATTEMPTS: 3,
+    PASSWORD_RESET_WINDOW_MS: 60 * 60 * 1000,
   },
 
-  // Role hierarchy
+  // Account Lockout
+  ACCOUNT_LOCKOUT: {
+    MAX_FAILED_ATTEMPTS: 5,
+    LOCKOUT_DURATION_MS: 30 * 60 * 1000, // 30 minutes
+  },
+
+  // Session/Device Management
+  SESSION: {
+    MAX_DEVICES_PER_USER: 5,
+  },
+
+  // Role Hierarchy (higher number = more permissions)
   ROLE_HIERARCHY: {
-    [UserRole.SUPER_ADMIN]: 4,
-    [UserRole.ADMIN]: 3,
-    [UserRole.MODERATOR]: 2,
     [UserRole.CUSTOMER]: 1,
+    [UserRole.SELLER]: 1,
+    [UserRole.MODERATOR]: 2,
+    [UserRole.ADMIN]: 3,
+    [UserRole.SUPER_ADMIN]: 4,
   },
 
-  // Security settings
-  PASSWORD_MIN_LENGTH: 8,
-  PASSWORD_REQUIREMENTS: {
-    UPPERCASE: true,
-    LOWERCASE: true,
-    NUMBERS: true,
-    SPECIAL_CHARS: true,
+  // Cache Prefixes
+  CACHE_PREFIXES: {
+    ACCESS_TOKEN: "access_token",
+    REFRESH_TOKEN: "refresh:user",
+    USER_SESSIONS: "sessions:user",
+    RATE_LIMIT: "rate_limit:",
+    VERIFICATION: "verification:",
+    VERIFICATION_TOKEN: "verification_token",
+    RESET_PASSWORD: "reset:",
+    PASSWORD_RESET_TOKEN: "password_reset_token",
+    TOKEN_BLACKLIST: "token_blacklist",
+    USER_TOKENS: "user:tokens:",
+    GOOGLE_OAUTH_STATE: "google_oauth_state:",
   },
-} as const; 
+
+  // Google OAuth Configuration
+  GOOGLE_OAUTH: {
+    ENDPOINTS: {
+      AUTHORIZATION: "https://accounts.google.com/o/oauth2/v2/auth",
+      TOKEN: "https://oauth2.googleapis.com/token",
+      USERINFO: "https://www.googleapis.com/oauth2/v3/userinfo",
+      TOKEN_INFO: "https://oauth2.googleapis.com/tokeninfo",
+    },
+    SCOPES: ["openid", "email", "profile"],
+    RESPONSE_TYPE: "code",
+    ACCESS_TYPE: "offline",
+    PROMPT: "consent",
+    STATE_TTL_SECONDS: 600,
+  },
+} as const;

@@ -7,6 +7,8 @@ node_modules
 .env.test
 .env.save
 coverage
+docs
+ARCHITECTURE.md
 
 
 

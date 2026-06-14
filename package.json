@@ -8,7 +8,11 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
-    "create-module": "node createModule.js"
+    "create-module": "node createModule.js",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose up -d --build",
+    "docker:logs": "docker-compose logs -f"
   },
   "author": "Pujon Das Auvi",
   "license": "ISC",
@@ -22,9 +26,9 @@
     "@types/jsonwebtoken": "^9.0.10",
     "@types/multer": "^2.0.0",
     "@types/supertest": "^6.0.3",
-    "jest": "^30.2.0",
+    "jest": "^30.4.2",
     "supertest": "^7.1.4",
-    "ts-jest": "^29.4.6",
+    "ts-jest": "^29.4.11",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3"
   },
