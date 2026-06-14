@@ -18,6 +18,146 @@
 
 ---
 
+## 1. How to Start (Quick Setup)
+
+### Prerequisites
+
+| Tool | Version | Purpose |
+|------|---------|---------|
+| Node.js | 18+ | JavaScript runtime |
+| npm or yarn | Latest | Package manager |
+| Docker Desktop | Latest | Container runtime (optional) |
+| MongoDB | 7.0 | Database (optional, can use Docker) |
+| Redis | 7.2 | Cache (optional, can use Docker) |
+
+
+### Using Docker Compose (Recommended)
+
+#### Step 1: Clone and Setup
+
+```bash
+git clone https://github.com/the-pujon/express-starterx.git
+cd express-starterx
+npm install
+```
+
+#### Step 2: Configure Environment
+
+```bash
+cp .env.example .env
+```
+
+Update `.env` with Docker-specific values:
+
+```env
+# Application
+NODE_ENV=development
+PORT=4000
+
+# Database (Docker internal)
+MONGODB_URI=mongodb://admin:admin123@mongo:27017/express_auth?authSource=admin
+BCRYPT_SALT_ROUNDS=12
+
+# JWT
+JWT_ACCESS_SECRET=your_super_secure_access_token_secret_min_32_chars
+JWT_ACCESS_EXPIRES_IN=1h
+JWT_REFRESH_SECRET=your_super_secure_refresh_token_secret_min_32_chars
+JWT_REFRESH_EXPIRES_IN=7d
+JWT_PASSWORD_SECRET=your_super_secure_password_reset_secret
+JWT_PASSWORD_EXPIRES_IN=15m
+
+# Redis (Docker internal)
+REDIS_URL=redis://:admin123@redis:6379
+
+# Email & Cloudinary (optional)
+...
+
+# Docker Compose (must match docker-compose.yml)
+MONGO_ROOT_PASSWORD=admin123
+MONGO_DB=express_auth
+MONGO_EXPRESS_PASSWORD=admin123
+REDIS_PASSWORD=admin123
+```
+
+#### Step 3: Start All Services
+
+```bash
+# Start MongoDB, Redis, and Mongo Express
+npm run docker:up
+
+# Or manually:
+docker-compose up -d
+```
+
+#### Step 4: Verify Services
+
+```bash
+# Check running containers
+docker-compose ps
+
+# View logs
+npm run docker:logs
+```
+
+#### Step 5: Start the Application
+
+```bash
+# In a new terminal, run the dev server
+npm run dev
+```
+
+---
+
+### Available Services
+
+| Service | URL | Credentials |
+|---------|-----|-------------|
+| API | http://localhost:4000 | - |
+| MongoDB | localhost:27017 | admin / admin123 |
+| Redis | localhost:6379 | (password from .env) |
+| Mongo Express | http://localhost:8081 | admin / admin123 |
+
+---
+
+### Common Commands
+
+```bash
+# Development
+npm run dev          # Start dev server with hot reload
+npm run build        # Build for production
+npm run test         # Run tests
+npm run test:watch   # Run tests in watch mode
+npm run test:coverage # Run tests with coverage
+
+# Docker
+npm run docker:up    # Start all containers
+npm run docker:down  # Stop all containers
+npm run docker:build # Rebuild containers
+npm run docker:logs  # View logs
+
+# Module Generation
+npm run create-module # Generate new module structure
+```
+
+---
+
+### API Endpoints
+
+Once running, access the API at `http://localhost:4000`
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/v1/auth/signup` | Register new user |
+| POST | `/api/v1/auth/login` | Login user |
+| POST | `/api/v1/auth/refresh-token` | Refresh access token |
+| POST | `/api/v1/auth/logout` | Logout user |
+| POST | `/api/v1/auth/forgot-password` | Request password reset |
+| POST | `/api/v1/auth/reset-password` | Reset password |
+| GET | `/api/v1/auth/me` | Get current user |
+| GET | `/api/v1/users` | Get all users (admin) |
+
+---
+
 ## 1. What is this Project?
 
 This is a **production-ready Node.js/Express REST API starter** built with **Clean Architecture** principles.
