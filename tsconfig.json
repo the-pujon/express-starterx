@@ -79,6 +79,7 @@
     "esModuleInterop": true /* Emit additional JavaScript to ease support for importing CommonJS modules. This enables 'allowSyntheticDefaultImports' for type compatibility. */,
     // "preserveSymlinks": true,                         /* Disable resolving symlinks to their realpath. This correlates to the same flag in node. */
     "forceConsistentCasingInFileNames": true /* Ensure that casing is correct in imports. */,
+    "moduleDetection": "force" /* Force TypeScript to treat all non-declaration files as modules — fixes "@types/supertest is not a module" on TS 5+ */,
 
     /* Type Checking */
     "strict": true /* Enable all strict type-checking options. */,
@@ -104,6 +105,6 @@
     /* Completeness */
     // "skipDefaultLibCheck": true,                      /* Skip type checking .d.ts files that are included with TypeScript. */
     "skipLibCheck": true /* Skip type checking all .d.ts files. */,
-    "types": ["jest", "node"] /* Include type definitions for jest and node */
+    "types": ["jest"] /* Include type definitions for jest and node */
   }
 }

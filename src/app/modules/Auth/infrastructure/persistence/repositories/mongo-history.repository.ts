@@ -14,6 +14,7 @@ import {
   ILoginHistoryRepository,
   ILoginHistoryRecord,
 } from "../../../domain/interfaces/login-history.repository.interface";
+import { EmailStatus } from "../../../domain/interfaces/auth.interface";
 
 /**
  * MongoEmailHistoryRepository
@@ -31,12 +32,12 @@ export class MongoEmailHistoryRepository implements IEmailHistoryRepository {
   async updateStatus(
     authId: string,
     emailType: any,
-    status: any,
+    status: EmailStatus,
     errorMsg?: string,
   ): Promise<void> {
     try {
       await EmailHistoryModel.updateMany(
-        { authId, emailType, emailStatus: "PENDING" },
+        { authId, emailType, emailStatus: EmailStatus.PENDING },
         {
           emailStatus: status,
           ...(errorMsg ? { errorMessage: errorMsg } : {}),

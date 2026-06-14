@@ -81,7 +81,7 @@ export class AuthController {
     const refreshToken = req.cookies?.refreshToken;
 
     if (userId) {
-      await this.authenticationService.logout(userId, refreshToken);
+      await this.authenticationService.logout(refreshToken, userId);
     }
 
     // Clear cookies
@@ -129,7 +129,10 @@ export class AuthController {
     const refreshToken = req.cookies?.refreshToken;
     const meta = this.extractMeta(req);
 
-    const result = await this.authenticationService.refreshToken(refreshToken, meta);
+    const result = await this.authenticationService.refreshToken(
+      refreshToken,
+      meta,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -146,7 +149,10 @@ export class AuthController {
   verifyEmail = catchAsync(async (req: Request, res: Response) => {
     const { token } = req.query;
 
-    await this.emailVerificationService.validateCode(token as string, "verification");
+    await this.emailVerificationService.validateCode(
+      token as string,
+      "verification",
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,

@@ -1,7 +1,5 @@
 # Complete Developer Guide
 
-> A beginner-friendly documentation for the Modular Express MongoDB Starter project.
-
 ---
 
 ## Table of Contents
@@ -35,6 +33,22 @@
 
 #### Step 1: Clone and Setup
 
+Choose one of the following ways to get started:
+
+**Option 1 — npx (recommended, no install needed):**
+```bash
+npx express-starterx@latest my-app
+cd my-app
+```
+
+**Option 2 — global install:**
+```bash
+npm install -g express-starterx
+express-starterx my-app
+cd my-app
+```
+
+**Option 3 — git clone:**
 ```bash
 git clone https://github.com/the-pujon/express-starterx.git
 cd express-starterx

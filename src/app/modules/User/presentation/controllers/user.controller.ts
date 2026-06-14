@@ -61,7 +61,10 @@ export class UserController {
       throw new AppError(httpStatus.UNAUTHORIZED, "User not authenticated");
     }
 
-    const user = await this.userManagementService.updateUser(userId, { name, phone });
+    const user = await this.userManagementService.updateUser(userId, {
+      name,
+      phone,
+    });
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -72,7 +75,7 @@ export class UserController {
   });
 
   getUserById = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
 
     const user = await this.userManagementService.getUserById(id);
     const profile = await this.userProfileService.getUserProfile(id);
@@ -92,7 +95,12 @@ export class UserController {
       searchTerm: req.query.searchTerm as string,
       role: req.query.role as string,
       status: req.query.status as string,
-      isVerified: req.query.isVerified === "true" ? true : req.query.isVerified === "false" ? false : undefined,
+      isVerified:
+        req.query.isVerified === "true"
+          ? true
+          : req.query.isVerified === "false"
+            ? false
+            : undefined,
     };
 
     const result = await this.userManagementService.getAllUsers(filters);
@@ -110,10 +118,17 @@ export class UserController {
     const currentUser = (req as any).user;
 
     if (!email || !newRole) {
-      throw new AppError(httpStatus.BAD_REQUEST, "Email and new role are required");
+      throw new AppError(
+        httpStatus.BAD_REQUEST,
+        "Email and new role are required",
+      );
     }
 
-    const updatedUser = await this.userManagementService.changeRole(email, newRole, currentUser);
+    const updatedUser = await this.userManagementService.changeRole(
+      email,
+      newRole,
+      currentUser,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
@@ -132,14 +147,17 @@ export class UserController {
   });
 
   deleteUser = catchAsync(async (req: Request, res: Response) => {
-    const { id } = req.params;
+    const { id } = req.params as { id: string };
     const currentUser = (req as any).user;
 
     if (!id) {
       throw new AppError(httpStatus.BAD_REQUEST, "User ID is required");
     }
 
-    const deletedUser = await this.userManagementService.deleteUser(id, currentUser);
+    const deletedUser = await this.userManagementService.deleteUser(
+      id,
+      currentUser,
+    );
 
     sendResponse(res, {
       statusCode: httpStatus.OK,
