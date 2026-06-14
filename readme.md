@@ -1,403 +1,520 @@
-# Express.js Backend Boilerplate Documentation
+# Complete Developer Guide
 
-A production-ready Express.js backend boilerplate with TypeScript, featuring a modular architecture, comprehensive security features, and best practices implementation.
+> A beginner-friendly documentation for the Modular Express MongoDB Starter project.
 
-## 📋 Table of Contents
-- [System Architecture](#system-architecture)
-- [Project Structure](#project-structure)
-- [Configuration](#configuration)
-- [Core Features](#core-features)
-- [Implementation Guidelines](#implementation-guidelines)
-- [Security](#security)
-- [Error Handling](#error-handling)
-- [File Upload](#file-upload)
-- [Caching](#caching)
-- [Email System](#email-system)
-- [Payment Integration](#payment-integration)
-- [Development Guide](#development-guide)
+---
 
-## 🏗️ System Architecture
+## Table of Contents
 
-### Core Components
-1. **Application Layer**
-   - Express.js server setup
-   - Middleware configuration
-   - Route management
-   - Error handling
+1. [What is this Project?](#1-what-is-this-project)
+2. [Architecture Overview](#2-architecture-overview)
+3. [Understanding the Flow](#3-understanding-the-flow)
+4. [Key Concepts Explained](#4-key-concepts-explained)
+5. [SOLID Principles](#5-solid-principles)
+6. [Folder Structure](#6-folder-structure)
+7. [How to Add New Features](#7-how-to-add-new-features)
+8. [Common Patterns](#8-common-patterns)
+9. [FAQ](#9-faq)
 
-2. **Service Layer**
-   - Business logic implementation
-   - External service integration
-   - Data processing
+---
 
-3. **Data Layer**
-   - MongoDB integration
-   - Redis caching
-   - File storage (Cloudinary)
+## 1. What is this Project?
 
-### Directory Structure
+This is a **production-ready Node.js/Express REST API starter** built with **Clean Architecture** principles.
+
+### What does that mean?
+
+| Term | Simple Explanation |
+|------|-------------------|
+| **Node.js** | JavaScript runtime for building servers |
+| **Express** | Web framework for handling HTTP requests |
+| **MongoDB** | Database for storing data |
+| **Clean Architecture** | A way to organize code so it's easy to test, maintain, and scale |
+
+### Why use this architecture?
+
+- ✅ Easy to test each part separately
+- ✅ Easy to change databases (MongoDB → PostgreSQL)
+- ✅ Business logic is separate from technical details
+- ✅ Scales well as project grows
+
+---
+
+## 2. Architecture Overview
+
+### The Big Picture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                        USER REQUEST                              │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  ROUTE (auth.route.ts)                                           │
+│  • Wires up all dependencies (Composition Root)                 │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  CONTROLLER (auth.controller.ts)                                │
+│  • Receives request, calls service                              │
+│  • Returns response                                              │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  SERVICE (registration.service.ts)                               │
+│  • Contains business logic                                      │
+│  • Coordinates operations                                        │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  REPOSITORY (mongo-user.repository.ts)                          │
+│  • Handles database operations                                   │
+│  • Implements interface                                          │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│  MONGODB DATABASE                                                │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 3. Understanding the Flow
+
+### Example: User Registration
+
+Let's trace what happens when a user signs up:
+
+```
+1. USER SENDS POST /auth/signup
+        │
+        ▼
+2. ROUTE (auth.route.ts)
+   │
+   │  const userRepository = new MongoUserRepository();
+   │  const registrationService = new RegistrationService(userRepository);
+   │  const authController = new AuthController(registrationService);
+   │
+        ▼
+3. CONTROLLER
+   │
+   │  authController.signup(req, res)
+   │       │
+   │       ▼
+   │  registrationService.signup(payload)
+   │
+        ▼
+4. SERVICE (Business Logic)
+   │
+   │  • Check rate limit
+   │  • Validate password
+   │  • Check if email already exists
+   │  • Create new user: User.create({...})
+   │  • Save to database: userRepository.save(user)
+   │
+        ▼
+5. REPOSITORY (Database Operations)
+   │
+   │  • Convert User to document: toDocumentData(user)
+   │  • Save to MongoDB: UserMongooseModel.create(doc)
+   │  • Convert back to User: toDomain(doc)
+   │
+        ▼
+6. RESPONSE BACK TO USER
+```
+
+---
+
+## 4. Key Concepts Explained
+
+### 4.1 Why Use a User Class Instead of Plain Object?
+
+**Question:** Why do we use `User.create({...})` instead of just a plain object?
+
+**Answer:** The User class provides:
+
+1. **Encapsulation** - Private fields that can't be accessed directly
+2. **Business Methods** - Methods like `verifyEmail()`, `lockAccount()`
+3. **Defaults** - Automatic default values
+4. **Single Source of Truth** - All user logic in one place
+
+```typescript
+// Using class
+const user = User.create({ name: "John", email: "john@..." });
+user.verifyEmail();  // Business logic in one place
+
+// Using plain object (simpler but less organized)
+const user = { name: "John", email: "john@...", isVerified: false };
+// Business logic would be scattered everywhere
+```
+
+### 4.2 Why Do We Need a Repository?
+
+The Repository pattern separates **business logic** from **database operations**.
+
+```typescript
+// Service doesn't know about MongoDB
+class RegistrationService {
+  constructor(private userRepository: IUserRepository) {}
+  
+  async signup(payload) {
+    // Just calls interface methods - no DB code here!
+    await this.userRepository.save(user);
+  }
+}
+
+// Repository handles the DB details
+class MongoUserRepository implements IUserRepository {
+  async save(user: User) {
+    // MongoDB-specific code here
+    await UserModel.create(docData);
+  }
+}
+```
+
+**Benefit:** If you want to switch from MongoDB to PostgreSQL later, you only change the repository - the service stays the same!
+
+### 4.3 What Does the Mapper Do?
+
+The Mapper converts between different representations:
+
+```typescript
+// User class → MongoDB document (for saving to DB)
+toDocumentData(user: User): Partial<IUserDocument>
+
+// MongoDB document → User class (for using in code)
+toDomain(doc: IUserDocument): User
+```
+
+### 4.4 What is Composition Root?
+
+The place where we connect all the pieces together:
+
+```typescript
+// filepath: auth.route.ts (Composition Root)
+const userRepository = new MongoUserRepository();           // Create repo
+const emailHistoryRepo = new MongoEmailHistoryRepository(); // Create repo
+const registrationService = new RegistrationService(       // Wire them up
+  userRepository,
+  emailHistoryRepo
+);
+const authController = new AuthController(registrationService); // Pass to controller
+```
+
+### 4.5 Static vs Instance Methods
+
+```typescript
+class User {
+  // STATIC - called on the class, no instance needed
+  static create(data: {...}): User {
+    return new User(...);
+  }
+  
+  static reconstitute(data: {...}): User {
+    return new User(...);
+  }
+
+  // INSTANCE - called on an instance
+  verifyEmail(): void {
+    this.isVerified = true;  // 'this' refers to the instance
+  }
+}
+
+// Usage
+const newUser = User.create({...});     // Static - no instance
+user.verifyEmail();                      // Instance - needs instance
+```
+
+---
+
+## 5. SOLID Principles
+
+This codebase follows SOLID principles:
+
+| Letter | Principle | How It's Applied |
+|--------|-----------|------------------|
+| **S**ingle Responsibility | Each class does one thing | User model = user logic only, Repository = DB only |
+| **O**pen/Closed | Open for extension, closed for modification | Add new methods without changing existing code |
+| **L**iskov Substitution | Any implementation can replace another | `MongoUserRepository` can be swapped with `PostgresUserRepository` |
+| **I**nterface Segregation | Many small interfaces vs one big one | `IUserRepository` defines clear contract |
+| **D**ependency Inversion | Depend on abstractions, not concretions | Service depends on `IUserRepository`, not `MongoUserRepository` |
+
+---
+
+## 6. Folder Structure
+
 ```
 src/
 ├── app/
-│   ├── config/         # Environment and service configurations
-│   ├── errors/         # Custom error handlers and classes
-│   ├── helpers/        # Utility helper functions
-│   ├── interface/      # TypeScript type definitions
-│   ├── middlewares/    # Express middleware functions
-│   ├── modules/        # Feature-based modules
-│   ├── routes/         # API route definitions
-│   ├── shared/         # Shared utilities and constants
-│   └── utils/          # Common utility functions
-├── templates/          # Email templates
-├── app.ts             # Express app configuration
-└── server.ts          # Server entry point
+│   ├── modules/
+│   │   ├── Auth/
+│   │   │   ├── application/        # Use cases (services)
+│   │   │   │   └── services/
+│   │   │   │       ├── registration.service.ts
+│   │   │   │       ├── authentication.service.ts
+│   │   │   │       └── ...
+│   │   │   ├── domain/              # Business logic (no DB code)
+│   │   │   │   ├── models/
+│   │   │   │   │   └── user.model.ts
+│   │   │   │   ├── interfaces/
+│   │   │   │   │   └── user.repository.interface.ts
+│   │   │   │   ├── exceptions/
+│   │   │   │   └── config/
+│   │   │   ├── infrastructure/    # Technical implementations
+│   │   │   │   ├── persistence/
+│   │   │   │   │   ├── repositories/
+│   │   │   │   │   │   └── mongo-user.repository.ts
+│   │   │   │   │   ├── mappers/
+│   │   │   │   │   │   └── user.mapper.ts
+│   │   │   │   │   └── mongoose/
+│   │   │   │   │       └── user.schema.ts
+│   │   │   │   └── adapters/
+│   │   │   └── presentation/      # HTTP layer
+│   │   │       ├── controllers/
+│   │   │       ├── routes/
+│   │   │       └── validation/
+│   │   ├── User/
+│   │   └── ActivityLog/
+│   ├── middlewares/                 # Express middlewares
+│   ├── shared/                     # Shared utilities
+│   └── utils/                      # Helper functions
+├── server.ts                       # Entry point
+└── app.ts                          # Express app setup
 ```
 
-## ⚙️ Configuration
+### Layer Responsibilities
 
-### Environment Variables
-Create a `.env` file with the following variables:
+| Layer | Folder | Responsibility |
+|-------|--------|----------------|
+| **Presentation** | `presentation/` | HTTP requests/responses |
+| **Application** | `application/` | Use cases, business flow |
+| **Domain** | `domain/` | Business rules, entities |
+| **Infrastructure** | `infrastructure/` | DB, external services |
 
-```env
-# Server Configuration
-PORT=4000
-NODE_ENV=development
+---
 
-# Database
-MONGODB_URI=your_mongodb_uri
+## 7. How to Add New Features
 
-# Authentication
-BCRYPT_SALT_ROUNDS=12
-JWT_ACCESS_SECRET=your_access_secret
-JWT_ACCESS_EXPIRES_IN=1d
-JWT_REFRESH_SECRET=your_refresh_secret
-JWT_REFRESH_EXPIRES_IN=7d
-JWT_PASSWORD_SECRET=your_password_secret
-JWT_PASSWORD_EXPIRES_IN=1h
+### Example: Adding a "Forgot Password" Feature
 
-# Redis Configuration
-REDIS_URL=your_redis_url
-REDIS_PORT=6379
-REDIS_PASSWORD=your_redis_password
-REDIS_TTL=3600
-REDIS_CACHE_KEY_PREFIX=app:
-REDIS_TTL_ACCESS_TOKEN=3600
-REDIS_TTL_REFRESH_TOKEN=604800
-
-# Cloudinary Configuration
-CLOUDINARY_CLOUD_NAME=your_cloud_name
-CLOUDINARY_API_KEY=your_api_key
-CLOUDINARY_API_SECRET=your_api_secret
-
-# Email Configuration
-EMAIL_HOST=smtp.example.com
-EMAIL_PORT=587
-EMAIL_USER=your_email
-EMAIL_PASS=your_password
-
-# Payment Gateway (SSLCommerz)
-STORE_ID=your_store_id
-STORE_PASSWD=your_store_password
-IS_LIVE=false
-```
-
-## 🔧 Core Features
-
-### 1. Authentication System
-- JWT-based authentication
-- Access and refresh token mechanism
-- Password reset functionality
-- Role-based access control
-
-### 2. Error Handling
-The boilerplate implements a robust error handling system:
+#### Step 1: Create the Service
 
 ```typescript
-// Custom error class
-class AppError extends Error {
-  statusCode: number;
-  status: string;
-  isOperational: boolean;
-}
+// filepath: src/app/modules/Auth/application/services/forgot-password.service.ts
 
-// Error handlers for different scenarios
-- handleCastError: MongoDB cast errors
-- handleDuplicateError: Duplicate key errors
-- handleValidationError: Validation errors
-- handleZodError: Schema validation errors
-- handleMulterErrors: File upload errors
-```
+import { IUserRepository } from "../../domain/interfaces/user.repository.interface";
 
-### 3. File Upload System
-- Cloudinary integration
-- Multer middleware
-- File type validation
-- Size restrictions
-- Automatic cleanup
+export class ForgotPasswordService {
+  constructor(private userRepository: IUserRepository) {}
 
-### 4. Caching System
-- Redis-based caching
-- Token storage
-- Query result caching
-- Cache invalidation
-
-### 5. Email System
-- HTML email templates
-- Nodemailer integration
-- Templates for:
-  - Email verification
-  - Password reset
-
-## 🛠️ Implementation Guidelines
-
-### 1. Creating New Modules
-```typescript
-// 1. Create module structure
-modules/
-  └── YourModule/
-      ├── controller.ts
-      ├── service.ts
-      ├── model.ts
-      ├── validation.ts
-      └── routes.ts
-
-// 2. Implement controller
-export const createItem = catchAsync(async (req: Request, res: Response) => {
-  const result = await YourService.createItem(req.body);
-  sendResponse(res, {
-    statusCode: httpStatus.CREATED,
-    success: true,
-    data: result
-  });
-});
-
-// 3. Add routes
-router.post('/', validateRequest(YourValidation.createSchema), createItem);
-```
-
-### 2. Using Middleware
-```typescript
-// Authentication middleware
-router.use(auth());
-
-// File upload middleware
-router.post('/upload', 
-  multerMiddleware.single('file'),
-  uploadController
-);
-
-// Request validation
-router.post('/create',
-  validateRequest(validationSchema),
-  controller
-);
-```
-
-### 3. Error Handling
-```typescript
-try {
-  // Your code
-} catch (error) {
-  throw new AppError('Error message', httpStatus.BAD_REQUEST);
+  async sendResetLink(email: string) {
+    // 1. Find user
+    const user = await this.userRepository.findByEmail(email);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    
+    // 2. Generate reset token
+    const resetToken = generateToken();
+    
+    // 3. Save to cache/database
+    await cacheData(`reset:${email}`, resetToken, 3600);
+    
+    // 4. Send email
+    await sendEmail(email, "Reset your password", ...);
+  }
 }
 ```
 
-### 4. File Upload
-```typescript
-// Configure multer
-const upload = multer({
-  storage: cloudinaryStorage,
-  limits: {
-    fileSize: 5 * 1024 * 1024 // 5MB
-  }
-});
+#### Step 2: Wire it up in the Route
 
-// Use in route
-router.post('/upload', upload.single('file'), uploadController);
-```
-
-### 5. Caching Implementation
 ```typescript
-// Cache data with TTL
-await cacheData(
-  'cache-key',
-  { data: 'value' },
-  3600 // TTL in seconds
+// filepath: src/app/modules/Auth/presentation/routes/auth.route.ts
+
+import { ForgotPasswordService } from "../../application/services/forgot-password.service";
+
+// In Composition Root:
+const forgotPasswordService = new ForgotPasswordService(userRepository);
+const authController = new AuthController(
+  registrationService,
+  authenticationService,
+  forgotPasswordService  // Add new service
 );
 
-// Retrieve cached data
-const cachedData = await getCachedData('cache-key');
-
-// Delete cached data by pattern
-await deleteCachedData('pattern*');
-
-// Clear all cached data
-await clearAllCachedData();
+// Add route
+router.post("/forgot-password", authController.forgotPassword);
 ```
 
-The Redis caching system provides the following utilities:
+#### Step 3: Add Controller Method
 
-1. **cacheData**
-   - Caches data with a specified TTL (Time To Live)
-   - Automatically serializes data to JSON
-   - Handles errors gracefully with logging
-
-2. **getCachedData**
-   - Retrieves cached data by key
-   - Automatically deserializes JSON data
-   - Returns null if data doesn't exist or on error
-
-3. **deleteCachedData**
-   - Deletes cached data matching a pattern
-   - Supports wildcard patterns
-   - Handles multiple key deletion
-
-4. **clearAllCachedData**
-   - Clears all cached data from Redis
-   - Useful for cache invalidation
-
-Example usage in a service:
 ```typescript
-// In your service file
-const getData = async (id: string) => {
-  // Try to get from cache first
-  const cachedData = await getCachedData(`data:${id}`);
-  if (cachedData) {
-    return cachedData;
-  }
+// filepath: src/app/modules/Auth/presentation/controllers/auth.controller.ts
 
-  // If not in cache, get from database
-  const data = await YourModel.findById(id);
+async forgotPassword(req, res) {
+  const { email } = req.body;
+  await this.forgotPasswordService.sendResetLink(email);
+  res.json({ message: "Reset link sent" });
+}
+```
+
+---
+
+## 8. Common Patterns
+
+### 8.1 Repository Pattern
+
+```typescript
+// Interface (contract)
+interface IUserRepository {
+  findByEmail(email: string): Promise<User | null>;
+  save(user: User): Promise<User>;
+}
+
+// Implementation
+class MongoUserRepository implements IUserRepository {
+  async findByEmail(email: string): Promise<User | null> {
+    const doc = await UserModel.findOne({ email });
+    return doc ? toDomain(doc) : null;
+  }
   
-  // Cache the result
-  await cacheData(`data:${id}`, data, 3600); // Cache for 1 hour
+  async save(user: User): Promise<User> {
+    const docData = toDocumentData(user);
+    const created = await UserModel.create(docData);
+    return toDomain(created);
+  }
+}
+```
+
+### 8.2 Factory Pattern
+
+```typescript
+class User {
+  // Private constructor - can't use 'new User()' directly
+  private constructor(...) {}
   
-  return data;
+  // Factory method for creating new users
+  static create(data: {...}): User {
+    return new User("", data.name, ...);  // id = "" for new users
+  }
+  
+  // Factory method for reconstructing from DB
+  static reconstitute(data: {...}): User {
+    return new User(data.id, data.name, ...);  // id from DB
+  }
+}
+```
+
+### 8.3 Dependency Injection
+
+```typescript
+// Instead of creating dependencies inside the class:
+class BadService {
+  userRepository = new MongoUserRepository();  // ❌ Hard to test
+}
+
+// Dependencies are injected via constructor:
+class GoodService {
+  constructor(private userRepository: IUserRepository) {}  // ✅ Easy to test
+}
+
+// Usage - dependencies are wired externally
+const userRepo = new MongoUserRepository();
+const service = new GoodService(userRepo);
+```
+
+---
+
+## 9. FAQ
+
+### Q: Why is there so many files? Can't we simplify?
+
+**A:** This architecture is designed for **medium-large projects**. For small projects, you can use simpler patterns. This boilerplate follows "best practices" which may be overkill for simple apps.
+
+### Q: What's the difference between `User.create()` and `User.reconstitute()`?
+
+| Method | When to Use |
+|--------|-------------|
+| `User.create()` | Creating a NEW user (id starts as empty string) |
+| `User.reconstitute()` | Loading an EXISTING user from database |
+
+### Q: How do I test this code?
+
+You can mock the repository:
+
+```typescript
+// Mock the repository
+const mockUserRepository = {
+  save: jest.fn().mockResolvedValue(user),
+  findByEmail: jest.fn().mockResolvedValue(null)
 };
+
+// Pass mock to service
+const service = new RegistrationService(mockUserRepository, ...);
+
+// Test - no real DB call!
+await service.signup(payload);
+expect(mockUserRepository.save).toHaveBeenCalled();
 ```
 
-## 🔒 Security Features
+### Q: Can I use a different database?
 
-### 1. Authentication
-- JWT token-based authentication
-- Refresh token rotation
-- Token blacklisting
-- Password hashing with bcrypt
+Yes! Just create a new repository:
 
-### 2. Request Validation
-- Zod schema validation
-- Input sanitization
-- Type checking
-
-### 3. File Upload Security
-- File type validation
-- Size restrictions
-- Secure storage
-- Automatic cleanup
-
-### 4. API Security
-- CORS protection
-- Rate limiting
-- XSS protection
-- SQL injection prevention
-
-## 📧 Email System Implementation
-
-### 1. Email Templates
-Located in `templates/`:
-- `verification-email.html`
-- `reset-password-email.html`
-
-### 2. Sending Emails
 ```typescript
-await sendEmail({
-  to: user.email,
-  subject: 'Email Verification',
-  html: verificationEmailTemplate
-});
+// To switch from MongoDB to PostgreSQL:
+class PostgresUserRepository implements IUserRepository {
+  // Implement same methods with PostgreSQL
+}
+
+// Service code stays the same!
 ```
 
-## 💳 Payment Integration
+### Q: What is the "this" keyword in User class methods?
 
-### SSLCommerz Integration
+`this` refers to the current instance:
+
 ```typescript
-const sslcommerz = new SSLCommerz(
-  config.store_id,
-  config.store_passwd,
-  config.is_live === 'true'
-);
+class User {
+  name: string;
+  
+  verifyEmail() {
+    this.isVerified = true;  // 'this' = the user instance
+  }
+}
 
-// Create payment session
-const paymentSession = await sslcommerz.initiatePayment({
-  // payment details
-});
+const user = User.create({ name: "John" });
+user.verifyEmail();  // Inside verifyEmail(), 'this' = user
 ```
 
-## 🚀 Development Guide
+---
 
-### 1. Setup Development Environment
-```bash
-# Install dependencies
-npm install
+## Quick Reference Card
 
-# Create .env file
-cp .env.example .env
+| When you need to... | Go to this file |
+|---------------------|-----------------|
+| Add new API endpoint | `modules/Auth/presentation/routes/auth.route.ts` |
+| Add business logic | `modules/Auth/application/services/` |
+| Change database logic | `modules/Auth/infrastructure/persistence/repositories/` |
+| Add user-related logic | `modules/Auth/domain/models/user.model.ts` |
+| Change DB schema | `modules/Auth/infrastructure/persistence/mongoose/user.schema.ts` |
 
-# Start development server
-npm run dev
-```
+---
 
-### 2. Building for Production
-```bash
-npm run build
-```
+## Conclusion
 
-### 3. Docker Deployment
-```bash
-# Build and run with Docker
-docker-compose up --build
-```
+This codebase uses **Clean Architecture** to keep your code:
+- ✅ **Testable** - Each layer can be tested separately
+- ✅ **Maintainable** - Clear separation of concerns
+- ✅ **Flexible** - Easy to swap databases or frameworks
+- ✅ **Scalable** - Grows well with your project
 
-## 📝 Best Practices
+Remember: **Simpler is often better**. If your project doesn't need all these layers, feel free to simplify!
 
-1. **Code Organization**
-   - Follow modular architecture
-   - Keep controllers thin
-   - Implement proper separation of concerns
+---
 
-2. **Error Handling**
-   - Use custom error classes
-   - Implement proper error logging
-   - Handle all possible error scenarios
-
-3. **Security**
-   - Validate all inputs
-   - Implement proper authentication
-   - Use environment variables
-   - Follow security best practices
-
-4. **Performance**
-   - Implement caching where appropriate
-   - Optimize database queries
-   - Use proper indexing
-
-## 📚 Additional Resources
-
-- [Express.js Documentation](https://expressjs.com/)
-- [TypeScript Documentation](https://www.typescriptlang.org/)
-- [MongoDB Documentation](https://docs.mongodb.com/)
-- [Redis Documentation](https://redis.io/documentation)
-- [Cloudinary Documentation](https://cloudinary.com/documentation)
-- [SSLCommerz Documentation](https://developer.sslcommerz.com/)
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a Pull Request
-
-## 📄 License
-
-ISC License
+*Happy Coding! 🚀*
